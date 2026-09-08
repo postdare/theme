@@ -1,10 +1,10 @@
 {
   "$schema": "https://zed.dev/schema/themes/v0.1.0.json",
-  "name": "Claude Light",
+  "name": "Postdare Light",
   "author": "kim",
   "themes": [
     {
-      "name": "Claude Light",
+      "name": "Postdare Light",
       "appearance": "light",
       "style": {
         "background.appearance": "opaque",
