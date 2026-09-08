@@ -1,33 +1,24 @@
-# Fire & Earth (火土暖色) Oh My Zsh Theme
+# Postdare Themes
 
-A warm, earthy terminal theme inspired by fire (orange/amber/red) and earth (sand/khaki/ochre) tones.
+A collection of personal themes for terminal and editor.
 
-## Preview & Colors
+## Contents
 
-- **Prompt Symbol / Icon**: Fiery Orange (`#ff8700` / 208) on success, Bright Fire Red (`#ff0000` / 196) on error
-- **Current Directory**: Sand / Khaki Earth Yellow (`#d7af5f` / 179)
-- **Git Prefix**: Earth Clay / Ochre Brown (`#af875f` / 137)
-- **Git Branch**: Warm Flame Red (`#ff5f5f` / 203)
-- **Git Dirty State**: Amber Glow (`#ffaf00` / 214)
+- [`zsh/`](./zsh) — **Fire & Earth** (火土暖色), a warm Oh My Zsh theme.
+- [`zed/`](./zed) — **Postdare Light** and **Postdare Dark**, Zed editor themes.
 
-## Installation
+## Zed Themes
 
-### With Oh My Zsh
-
-1. Clone or link the theme file into your custom themes directory:
+Install the Zed theme files by copying them to your Zed themes directory:
 
 ```bash
-ln -s "$(pwd)/fire-earth.zsh-theme" "$ZSH_CUSTOM/themes/fire-earth.zsh-theme"
+# macOS/Linux
+mkdir -p ~/.config/zed/themes
+cp zed/postdare-*.json ~/.config/zed/themes/
+
+# Windows
+mkdir -p "$env:LOCALAPPDATA\Zed\themes"
+cp zed\postdare-*.json "$env:LOCALAPPDATA\Zed\themes\"
 ```
 
-2. Set `ZSH_THEME` in `~/.zshrc`:
-
-```zsh
-ZSH_THEME="fire-earth"
-```
-
-3. Reload zsh:
-
-```bash
-source ~/.zshrc
-```
+Then open Zed, press `Ctrl+Shift+P` / `Cmd+Shift+P`, type `theme picker`, and select **Postdare Light** or **Postdare Dark**.
