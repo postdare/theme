@@ -17,8 +17,8 @@
         "border.disabled": "#EFEDE6",
 
         "elevated_surface.background": "#FFFFFF",
-        "surface.background": "#F6F5F0",
-        "background": "#FBFAF7",
+        "surface.background": "#FBFBF9",
+        "background": "#FCFCFB",
 
         "element.background": "#F0EEE7",
         "element.hover": "#EBE9E0",
@@ -45,16 +45,16 @@
         "icon.placeholder": "#A3A097",
         "icon.accent": "#C15F3C",
 
-        "status_bar.background": "#F4F3EE",
-        "title_bar.background": "#F4F3EE",
-        "toolbar.background": "#FBFAF7",
-        "tab_bar.background": "#F4F3EE",
-        "tab.inactive_background": "#F4F3EE",
-        "tab.active_background": "#FBFAF7",
+        "status_bar.background": "#FBFBF9",
+        "title_bar.background": "#FBFBF9",
+        "toolbar.background": "#FCFCFB",
+        "tab_bar.background": "#FBFBF9",
+        "tab.inactive_background": "#FBFBF9",
+        "tab.active_background": "#FCFCFB",
 
         "search.match_background": "#E0A52E4D",
 
-        "panel.background": "#F6F5F0",
+        "panel.background": "#FBFBF9",
         "panel.focused_border": null,
         "pane.focused_border": null,
 
@@ -65,9 +65,9 @@
         "scrollbar.track.border": "#EFEDE5",
 
         "editor.foreground": "#24221E",
-        "editor.background": "#FBFAF7",
-        "editor.gutter.background": "#FBFAF7",
-        "editor.subheader.background": "#F4F3EE",
+        "editor.background": "#FCFCFB",
+        "editor.gutter.background": "#FCFCFB",
+        "editor.subheader.background": "#FBFBF9",
         "editor.active_line.background": "#F5F3EC",
         "editor.highlighted_line.background": "#F5F3EC",
         "editor.line_number": "#C6C3B8",
@@ -138,7 +138,7 @@
         "warning.background": "#B4530914",
         "warning.border": "#B4530940",
 
-        "terminal.background": "#FBFAF7",
+        "terminal.background": "#FCFCFB",
         "terminal.foreground": "#24221E",
         "terminal.bright_foreground": "#1A1915",
         "terminal.dim_foreground": "#6F6C64",
@@ -164,7 +164,7 @@
         "terminal.ansi.bright_cyan": "#3FA3A3",
         "terminal.ansi.dim_cyan": "#257373",
         "terminal.ansi.white": "#EAE8E1",
-        "terminal.ansi.bright_white": "#FBFAF7",
+        "terminal.ansi.bright_white": "#FBFBF9",
         "terminal.ansi.dim_white": "#C6C3B8",
 
         "players": [
