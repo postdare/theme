@@ -10,7 +10,7 @@
         "background.appearance": "opaque",
 
         "border": "#2A2F36",
-        "border.variant": "#353B44",
+        "border.variant": "#242931",
         "border.focused": "#E07B39",
         "border.selected": "#3A4149",
         "border.transparent": "#00000000",
@@ -47,6 +47,7 @@
 
         "status_bar.background": "#1B1E23",
         "title_bar.background": "#1B1E23",
+        "title_bar.inactive_background": "#17191D",
         "toolbar.background": "#17191D",
         "tab_bar.background": "#1B1E23",
         "tab.inactive_background": "#1B1E23",
@@ -55,8 +56,12 @@
         "search.match_background": "#E07B394D",
 
         "panel.background": "#1B1E23",
-        "panel.focused_border": null,
+        "panel.focused_border": "#E07B3999",
+        "panel.indent_guide": "#2A2F36",
+        "panel.indent_guide_hover": "#3A4149",
+        "panel.indent_guide_active": "#E07B3999",
         "pane.focused_border": null,
+        "pane_group.border": "#353B44",
 
         "scrollbar.thumb.background": "#FAFAFA40",
         "scrollbar.thumb.hover_background": "#FAFAFA59",
@@ -77,6 +82,7 @@
         "editor.active_wrap_guide": "#2A2F36",
         "editor.indent_guide": "#111317",
         "editor.indent_guide_active": "#E07B3966",
+        "editor.document_highlight.bracket_background": "#E07B3926",
         "editor.document_highlight.read_background": "#E07B3926",
         "editor.document_highlight.write_background": "#E07B3940",
 
@@ -166,6 +172,7 @@
         "terminal.ansi.white": "#A1A1AA",
         "terminal.ansi.bright_white": "#FAFAFA",
         "terminal.ansi.dim_white": "#6B7280",
+        "terminal.ansi.background": "#17191D",
 
         "players": [
           { "cursor": "#E07B39", "background": "#E07B39", "selection": "#E07B3940" },

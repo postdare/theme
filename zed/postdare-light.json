@@ -1,5 +1,5 @@
 {
-  "$schema": "https://zed.dev/schema/themes/v0.1.0.json",
+  "$schema": "https://zed.dev/schema/themes/v0.2.0.json",
   "name": "Postdare Light",
   "author": "kim",
   "themes": [
@@ -10,7 +10,7 @@
         "background.appearance": "opaque",
 
         "border": "#EFEFEC",
-        "border.variant": "#E3E1D9",
+        "border.variant": "#F4F2EB",
         "border.focused": "#D97757",
         "border.selected": "#DBD8CC",
         "border.transparent": "#00000000",
@@ -47,6 +47,7 @@
 
         "status_bar.background": "#FBFBF9",
         "title_bar.background": "#FBFBF9",
+        "title_bar.inactive_background": "#F5F3EC",
         "toolbar.background": "#FCFCFB",
         "tab_bar.background": "#FBFBF9",
         "tab.inactive_background": "#FBFBF9",
@@ -55,8 +56,12 @@
         "search.match_background": "#E0A52E4D",
 
         "panel.background": "#FBFBF9",
-        "panel.focused_border": null,
+        "panel.focused_border": "#D9775766",
+        "panel.indent_guide": "#EFEDE5",
+        "panel.indent_guide_hover": "#DBD8CC",
+        "panel.indent_guide_active": "#D9775766",
         "pane.focused_border": null,
+        "pane_group.border": "#E3E1D9",
 
         "scrollbar.thumb.background": "#3D3A3040",
         "scrollbar.thumb.hover_background": "#3D3A3059",
@@ -77,6 +82,7 @@
         "editor.active_wrap_guide": "#DBD8CC",
         "editor.indent_guide": "#EFEDE5",
         "editor.indent_guide_active": "#D9775766",
+        "editor.document_highlight.bracket_background": "#D9775726",
         "editor.document_highlight.read_background": "#D9775726",
         "editor.document_highlight.write_background": "#D9775740",
 
@@ -166,6 +172,7 @@
         "terminal.ansi.white": "#EAE8E1",
         "terminal.ansi.bright_white": "#FBFBF9",
         "terminal.ansi.dim_white": "#C6C3B8",
+        "terminal.ansi.background": "#FCFCFB",
 
         "players": [
           { "cursor": "#C15F3C", "background": "#C15F3C", "selection": "#D9775740" },
