@@ -5,20 +5,14 @@ A collection of personal themes for terminal and editor.
 ## Contents
 
 - [`zsh/`](./zsh) — **Fire & Earth** (火土暖色), a warm Oh My Zsh theme.
-- [`zed/`](./zed) — **Postdare Light** and **Postdare Dark**, Zed editor themes.
+- **Postdare for Zed** — moved to its own repository: [`postdare/zed-postdare`](https://github.com/postdare/zed-postdare).
 
 ## Zed Themes
 
-Install the Zed theme files by copying them to your Zed themes directory:
+The Zed themes now live in [`postdare/zed-postdare`](https://github.com/postdare/zed-postdare) and are published as a Zed extension.
 
-```bash
-# macOS/Linux
-mkdir -p ~/.config/zed/themes
-cp zed/postdare-*.json ~/.config/zed/themes/
+Install them from inside Zed:
 
-# Windows
-mkdir -p "$env:LOCALAPPDATA\Zed\themes"
-cp zed\postdare-*.json "$env:LOCALAPPDATA\Zed\themes\"
-```
-
-Then open Zed, press `Ctrl+Shift+P` / `Cmd+Shift+P`, type `theme picker`, and select **Postdare Light** or **Postdare Dark**.
+1. Press `Cmd+Shift+P` / `Ctrl+Shift+P` and run `zed: extensions`.
+2. Search for **Postdare** and click **Install**.
+3. Run `theme selector` and choose **Postdare Light** or **Postdare Dark**.
