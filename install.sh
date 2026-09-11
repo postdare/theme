@@ -37,23 +37,11 @@ err()  { printf '  %s✗%s %s\n' "$C_ERR" "$C_R" "$*" >&2; }
 die()  { err "$*"; exit 1; }
 dim()  { printf '  %s%s%s\n' "$C_D" "$*" "$C_R"; }
 
-# Read from the terminal, not stdin: under `curl | bash` stdin is the script
-# itself, so a plain `read` would return EOF and the menu could never appear.
+# The interactive selector reads raw bytes from the terminal, not stdin: under
+# `curl | bash` stdin is the script itself, so a plain read would return EOF and the
+# menu could never appear.
 TTY=/dev/tty
 have_tty() { [ -r "$TTY" ] && [ -w "$TTY" ]; }
-ask_tty() { # ask_tty <prompt> <default>  -> echoes answer
-  local prompt="$1" def="${2:-}" reply=""
-  if ! have_tty; then printf '%s' "$def"; return; fi
-  printf '  %s%s%s%s ' "$C_B" "$prompt" "$C_R" "${def:+[$def]}" >"$TTY"
-  IFS= read -r reply <"$TTY" || reply=""
-  [ -z "$reply" ] && reply="$def"
-  printf '%s' "$reply"
-}
-confirm_tty() { # confirm_tty <question> <y|n default>
-  local q="$1" def="${2:-y}" reply
-  reply=$(ask_tty "$q (y/n)" "$def")
-  case "$reply" in [Yy]*) return 0;; *) return 1;; esac
-}
 
 backup() { # backup <file>
   [ -f "$1" ] || return 0
@@ -104,9 +92,10 @@ Usage:
   curl -fsSL $RAW/install.sh | bash -s -- --only pi --mode dark
 
 Options:
-  --only <apps>     comma separated: pi,ghostty,oh-my-posh
+  --only <apps>     skip the menu: pi,ghostty,oh-my-posh
   --apps <apps>     same as --only
-  --mode <m>        light | dark                      (default: ask, else light)
+  --mode <m>        which variant is active: light | dark   (default: light)
+                    both variants are always installed — `theme dark` switches later
   --dir <path>      where to keep the theme files     (default: $DIR)
   --update          pull the latest version in --dir and exit
   --no-zshrc        install the oh-my-posh config but do not touch .zshrc
@@ -184,6 +173,8 @@ else
       fetch_into "$DIR" || die "could not download $REPO@$REF"
       SRC="$DIR"
       ok "installed to $(tilde "$DIR")"
+      dim "a copy now lives here and your configs will point at it — if you already"
+      dim "have a checkout, run ./install.sh from inside it instead"
     fi
   fi
 fi
@@ -198,41 +189,126 @@ detect() { # detect <app> -> 0 present
   esac
 }
 
+detect_note() {
+  case "$1" in
+    pi)         tilde "$HOME/.pi";;
+    ghostty)    [ -d "$GHOSTTY_APP" ] && printf '%s' "$GHOSTTY_APP" || command -v ghostty;;
+    oh-my-posh) command -v oh-my-posh 2>/dev/null;;
+  esac
+}
+
+# ── checkbox selector ─────────────────────────────────────────────────
+# Arrows move, Space toggles, Enter confirms, a/n select all/none, q quits.
+# Reads raw bytes from /dev/tty: under `curl | bash` stdin is the script itself, so
+# any plain read hits EOF and a menu could never appear.
+#
+# POSTDARE_KEYS is a test seam - it replays a byte string instead of the terminal, so
+# the selection logic can be exercised without a human (e.g. POSTDARE_KEYS=$'\033[B \r').
+_KEYS="${POSTDARE_KEYS:-}"
+_restore_tty() { [ -n "${_SAVED_TTY:-}" ] && stty "$_SAVED_TTY" <"$TTY" 2>/dev/null; return 0; }
+
+_read_byte() { # sets _BYTE
+  if [ -n "$_KEYS" ]; then _BYTE="${_KEYS:0:1}"; _KEYS="${_KEYS:1}"; return 0; fi
+  IFS= read -rsn1 _BYTE <"$TTY" || return 1
+}
+_read_key() { # sets _KEY, folding 3-byte escape sequences
+  _read_byte || return 1
+  _KEY="$_BYTE"
+  if [ "$_KEY" = $'\033' ]; then
+    _read_byte && _KEY="$_KEY$_BYTE"
+    _read_byte && _KEY="$_KEY$_BYTE"
+  fi
+  return 0
+}
+
+select_apps() { # select_apps <space separated candidates> -> echoed comma list
+  local list="$1" a n=0 i=0
+  local -a items sel
+  for a in $list; do items[$n]="$a"; sel[$n]=1; n=$((n + 1)); done
+  [ "$n" = 0 ] && return 1
+
+  # POSTDARE_KEYS replays a byte string instead of the terminal. That is the only way to
+  # exercise the selection logic from a script, and it also keeps the selector usable
+  # with no tty attached.
+  local testmode=0 out="$TTY"
+  if [ -n "${POSTDARE_KEYS:-}" ]; then testmode=1; out=/dev/stderr; fi
+
+  # No terminal, or -y: take everything, no questions.
+  if [ "$ASSUME_YES" = 1 ] || { [ "$testmode" = 0 ] && ! have_tty; }; then
+    printf '%s' "$(printf '%s' "$list" | tr ' ' ',')"
+    return 0
+  fi
+
+  local cur=0 block=$((n + 2)) hint="↑/↓ move · Space toggle · Enter confirm · a all · n none"
+  local first=1 chosen count
+  if [ "$testmode" = 0 ]; then
+    _SAVED_TTY="$(stty -g <"$TTY" 2>/dev/null)"
+    [ -n "$_SAVED_TTY" ] && stty -icanon -echo min 1 time 0 <"$TTY" 2>/dev/null
+    trap '_restore_tty' EXIT INT TERM
+  fi
+
+  draw() {
+    local j mark
+    if [ "$first" = 1 ]; then first=0; else printf '\033[%dA' "$block" >"$out"; fi
+    printf '\033[K  %sWhich should be themed?%s\n' "$C_B" "$C_R" >"$out"
+    for j in $(seq 0 $((n - 1))); do
+      mark=' '; [ "${sel[$j]}" = 1 ] && mark='x'
+      if [ "$j" = "$cur" ]; then
+        printf '\033[K  %s\033[7m %s [%s] %-12s\033[0m %s\n' "$C_HL" "$j" "$mark" "${items[$j]}" "${C_D}$(detect_note "${items[$j]}")$C_R" >"$out"
+      else
+        printf '\033[K    %s [%s] %-12s %s%s%s\n' "$j" "$mark" "${items[$j]}" "$C_D" "$(detect_note "${items[$j]}")" "$C_R" >"$out"
+      fi
+    done
+    printf '\033[K  %s%s%s\n' "$C_D" "$hint" "$C_R" >"$out"
+  }
+
+  while :; do
+    draw
+    _read_key || break
+    case "$_KEY" in
+      $'\033[A'|k) cur=$((cur == 0 ? n - 1 : cur - 1));;
+      $'\033[B'|j) cur=$((cur == n - 1 ? 0 : cur + 1));;
+      ' ')         if [ "${sel[$cur]}" = 1 ]; then sel[$cur]=0; else sel[$cur]=1; fi;;
+      a|A)         for i in $(seq 0 $((n - 1))); do sel[$i]=1; done;;
+      n|N)         for i in $(seq 0 $((n - 1))); do sel[$i]=0; done;;
+      q|Q|$'\003') [ "$testmode" = 0 ] && { _restore_tty; trap - EXIT INT TERM; }
+                   say ""; die "cancelled";;
+      ''|$'\r'|$'\n') break;;
+    esac
+  done
+  if [ "$testmode" = 0 ]; then _restore_tty; trap - EXIT INT TERM; fi
+
+  chosen=""; count=0
+  for i in $(seq 0 $((n - 1))); do
+    if [ "${sel[$i]}" = 1 ]; then chosen="${chosen:+$chosen,}${items[$i]}"; count=$((count + 1)); fi
+  done
+  say ""
+  if [ "$count" = 0 ]; then dim "nothing selected — nothing to do"; return 1; fi
+  ok "selected: $chosen"
+  printf '%s' "$chosen"
+}
+
+# ── pick apps ─────────────────────────────────────────────────────────
 if [ -z "$APPS" ] && [ "$UNINSTALL" != 1 ]; then
   step "Detected"
   avail=""
   for a in pi ghostty oh-my-posh; do
-    if detect "$a"; then ok "$a"; avail="$avail $a"; else dim "$a — not installed"; fi
+    if detect "$a"; then ok "$a"; avail="${avail:+$avail }$a"; else dim "$a — not installed"; fi
   done
-  avail="${avail# }"
   [ -z "$avail" ] && die "none of pi, ghostty, oh-my-posh found; pass --only to force"
 
-  if have_tty && [ "$ASSUME_YES" != 1 ]; then
-    say ""
-    say "  Which should be themed? Comma separated, or Enter for all of them:"
-    say "  ${C_D}$(printf '%s' "$avail" | tr ' ' ',')${C_R}"
-    picks="$(ask_tty 'Apps:' "$(printf '%s' "$avail" | tr ' ' ',')")"
-    APPS="$(printf '%s' "$picks" | tr -d ' ')"
-  else
-    APPS="$(printf '%s' "$avail" | tr ' ' ',')"
-    dim "--yes / no tty: taking all detected apps ($APPS)"
-  fi
+  say ""
+  # select_apps runs in a subshell, so its own `exit` cannot stop this script - check the
+  # status here, or a cancelled menu would fall through to "no apps applied" and exit 0.
+  picks="$(select_apps "$avail")" || { say ""; exit 1; }
+  APPS="$picks"
+  [ -z "$APPS" ] && { say ""; exit 1; }
 fi
 
-# Ask about the background independently of the app list: `--only pi` should still
-# offer the choice rather than silently picking one.
-if [ "$UNINSTALL" != 1 ] && [ -z "$MODE" ]; then
-  if have_tty && [ "$ASSUME_YES" != 1 ]; then
-    say ""
-    mode=$(ask_tty 'Background — light or dark? (light/dark)' 'light')
-    case "$mode" in [Dd]*) MODE=dark;; *) MODE=light;; esac
-  else
-    MODE=light
-    dim "--yes / no tty: defaulting to light"
-  fi
-fi
+# Both variants are always installed; --mode only decides which one is active.
 [ -z "$MODE" ] && MODE=light
 case "$MODE" in light) VARIANT=earendil-light;; dark) VARIANT=earendil-dark;; esac
+OTHER=earendil-light; [ "$VARIANT" = earendil-light ] && OTHER=earendil-dark
 
 has_app() { case ",$APPS," in *",$1,"*) return 0;; *) return 1;; esac; }
 
@@ -323,16 +399,26 @@ install_omp() {
   local src="$SRC/oh-my-posh/$VARIANT.omp.json"
   local rel="~/.poshthemes/earendil.omp.json"
   local dst="$HOME/.poshthemes/earendil.omp.json"
+  local dir="$HOME/.poshthemes"
   [ -f "$src" ] || { err "missing $src"; return 1; }
 
   if [ "$DRY" = 1 ]; then
-    dim "would copy $VARIANT.omp.json -> $(tilde "$dst")"
+    dim "would install earendil-light.omp.json and earendil-dark.omp.json to $(tilde "$dir")"
+    dim "would activate $VARIANT as earendil.omp.json"
     [ "$SET_ZSH" = 1 ] && dim "would point .zshrc at $rel"
     return 0
   fi
-  mkdir -p "$(dirname "$dst")"
+  mkdir -p "$dir"
+  # Both variants land on disk so the prompt can be switched by hand as well as by
+  # `theme dark`; the fixed filename is what .zshrc references.
+  for v in earendil-light earendil-dark; do
+    if [ -f "$SRC/oh-my-posh/$v.omp.json" ]; then
+      cp "$SRC/oh-my-posh/$v.omp.json" "$dir/$v.omp.json"
+    fi
+  done
   cp "$src" "$dst"
-  ok "installed $(tilde "$dst")"
+  ok "installed earendil-light.omp.json, earendil-dark.omp.json → $(tilde "$dir")"
+  ok "active: $VARIANT"
 
   if [ "$SET_ZSH" = 0 ]; then
     dim "--no-zshrc: add this yourself:"
@@ -426,11 +512,15 @@ PY
     fi
   fi
 
-  # oh-my-posh — the filename is ours, so removing it is unambiguous
-  if [ -f "$rposh" ]; then
-    if [ "$DRY" = 1 ]; then dim "would remove $(tilde "$rposh")"
-    else rm -f "$rposh"; ok "removed $(tilde "$rposh")"; fi
-  fi
+  # oh-my-posh — the `earendil*.omp.json` names are ours, so removing them is unambiguous
+  local f found=0
+  for f in "$HOME/.poshthemes"/earendil*.omp.json; do
+    [ -f "$f" ] || continue
+    found=1
+    if [ "$DRY" = 1 ]; then dim "would remove $(tilde "$f")"
+    else rm -f "$f"; ok "removed $(tilde "$f")"; fi
+  done
+  [ "$found" = 0 ] && dim "nothing of ours in ~/.poshthemes"
 
   # .zshrc — `~/.poshthemes/earendil.omp.json` is a filename only this repo uses, so
   # matching it is unambiguous. Not gated on the install record: leaving the line behind
@@ -484,7 +574,9 @@ fi
 
 step "Done"
 say "  themes    $(tilde "$SRC")"
-[ -n "$APPS" ] && say "  applied   $APPS   ($MODE)"
+[ -n "$APPS" ] && say "  applied   $APPS"
+say "  variants  earendil-light, earendil-dark  (both installed)"
+say "  active    $MODE"
 
 # Record precisely what we changed so --uninstall does not have to guess.
 if [ "$DRY" != 1 ]; then

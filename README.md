@@ -8,9 +8,11 @@ A collection of personal themes for terminal and editor.
 curl -fsSL https://raw.githubusercontent.com/postdare/theme/main/install.sh | bash
 ```
 
-It detects which of `pi`, `ghostty` and `oh-my-posh` you actually have, asks which to theme
-and whether your background is light or dark, then links the themes in. The theme files stay
-in this repository and are referenced from it, so keep the checkout around.
+It detects which of `pi`, `ghostty` and `oh-my-posh` you actually have, then shows a
+checkbox list — `↑`/`↓` to move, `Space` to toggle, `Enter` to confirm, `a`/`n` for all or
+none. **Both variants are always installed**; `--mode` only decides which one is active, and
+`theme light` / `theme dark` switches afterwards. The theme files stay in this repository and
+are referenced from it, so keep the checkout around.
 
 ```bash
 # non-interactive, only one app
@@ -23,8 +25,9 @@ curl -fsSL .../install.sh | bash -s -- --only pi --mode dark
 
 Worth knowing before you run it:
 
-- **`curl | bash` cannot prompt.** Under a pipe, stdin *is* the script, so any `read` hits
-  EOF. The installer reads from `/dev/tty` instead, and takes flags for non-interactive use.
+- **`curl | bash` cannot prompt the usual way.** Under a pipe, stdin *is* the script, so any
+  plain `read` hits EOF. The checkbox selector reads raw keystrokes from `/dev/tty` instead,
+  restores the terminal on every exit path, and falls back to `--only` when there is no tty.
 - **Nothing is overwritten silently.** Every file it edits is copied to `<file>.bak-postdare`
   first, config edits replace a key rather than append, and re-running changes nothing.
 - **Uninstall is recorded, not guessed.** Ghostty does not support inline comments — anything
