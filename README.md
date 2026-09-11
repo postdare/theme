@@ -5,7 +5,7 @@ A collection of personal themes for terminal and editor.
 ## Contents
 
 - [`zsh/`](./zsh) — **Fire & Earth** (火土暖色), a warm Oh My Zsh theme. Designed for a dark background.
-- [`oh-my-posh/`](./oh-my-posh) — **Earendil** (纸墨暖色), a *prompt* that recolors your existing oh-my-posh theme. No config file is shipped.
+- [`oh-my-posh/`](./oh-my-posh) — **Earendil** (纸墨暖色), a paper & ink oh-my-posh prompt (light/dark).
 - [`pi/`](./pi) — **Earendil** (纸墨暖色), light/dark themes for [pi](https://github.com/earendil-works/pi).
 - [`ghostty/`](./ghostty) — **Earendil**, the matching Ghostty terminal palettes (light/dark).
 - **Postdare for Zed** — moved to its own repository: [`postdare/zed-postdare`](https://github.com/postdare/zed-postdare).
@@ -44,6 +44,9 @@ Every write is backed up to `*.bak-theme` first. Paths are resolved from the scr
 location, so any clone works; override with `THEME_REPO`, `GHOSTTY_CONFIG`, `PI_SETTINGS`
 or `POSH_DIR`.
 
-The oh-my-posh half is optional: this repo ships a prompt rather than a config
-([`oh-my-posh/README.md`](./oh-my-posh)), so if the generated variants are absent the
-switcher warns and still moves the other two layers.
+All three layers are covered on a fresh clone, since the oh-my-posh configs ship in
+[`oh-my-posh/`](./oh-my-posh). If that directory is missing the switcher warns and still
+moves the other two layers.
+
+The one thing no palette can fix is a tool that hardcodes its own colors. See the
+`minimum-contrast` guard in [`ghostty/README.md`](./ghostty/README.md).
