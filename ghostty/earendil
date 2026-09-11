@@ -1,0 +1,44 @@
+# Earendil — paper & ink (light)
+#
+# 一套"信纸"配色：奶油纸底 + 暖墨正文 + 琥珀强调。
+# 取自 Earendil（pi 官方）的 RFC 信纸风格，与 pi 主题 earendil-light 同源。
+#
+#   纸 #e8e5de   ·   墨 #241c11   ·   琥珀 #e1ab4f
+#
+# 用法：
+#   theme = /path/to/theme/ghostty/earendil
+# 或复制到 ~/.config/ghostty/themes/ 后：
+#   theme = earendil
+#
+# 说明：16 色 ANSI 全部锁在 20°-60° 暖色相内，无蓝绿。
+# 蓝/青槽位用低饱和暖灰占位，保证 ls / git / 16 色 vim 仍可分辨。
+# bright 槽位刻意取更深的值 —— 在浅底上"越亮越看不见"。
+
+# ── 基础色 ────────────────────────────────────────────────────
+
+background = e8e5de
+foreground = 241c11
+cursor-color = 9a6e1e
+cursor-text = e8e5de
+selection-background = e7d9b8
+selection-foreground = 241c11
+split-divider-color = c6bead
+
+# ── 16 色 ANSI ─────────────────────────────────────────────────
+
+palette = 0=#241c11
+palette = 1=#a8452a
+palette = 2=#6b6b33
+palette = 3=#8f6a12
+palette = 4=#6b7a75
+palette = 5=#8a4a2a
+palette = 6=#6b5c46
+palette = 7=#6f6a5c
+palette = 8=#8b8578
+palette = 9=#8f3218
+palette = 10=#4f5524
+palette = 11=#6e5010
+palette = 12=#4f5c58
+palette = 13=#6f3a1e
+palette = 14=#52422f
+palette = 15=#c9c2b4

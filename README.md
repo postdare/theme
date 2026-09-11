@@ -5,6 +5,8 @@ A collection of personal themes for terminal and editor.
 ## Contents
 
 - [`zsh/`](./zsh) — **Fire & Earth** (火土暖色), a warm Oh My Zsh theme.
+- [`pi/`](./pi) — **Earendil** (纸墨暖色), light/dark themes for [pi](https://github.com/earendil-works/pi).
+- [`ghostty/`](./ghostty) — **Earendil**, the matching Ghostty terminal palette.
 - **Postdare for Zed** — moved to its own repository: [`postdare/zed-postdare`](https://github.com/postdare/zed-postdare).
 
 ## Zed Themes
