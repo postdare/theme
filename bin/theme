@@ -13,6 +13,9 @@
 #   prompt 路径 #e8e5de 印在奶油底 #e8e5de 上 = 1.00:1
 #
 # 每次改动前都会备份到 *.bak-theme。
+#
+# 只用 awk，不依赖 python3：全新的 Mac 上 /usr/bin/python3 只是个存根，一跑就弹
+# Xcode CLT 安装框。
 set -uo pipefail
 
 # ── 定位仓库根：优先 $THEME_REPO，否则由脚本自身位置推导（脚本应在 <repo>/bin/）──
@@ -34,26 +37,39 @@ PI_SETTINGS="${PI_SETTINGS:-$HOME/.pi/agent/settings.json}"
 POSH_DIR="${POSH_DIR:-$HOME/.poshthemes}"
 POSH_ACTIVE="$POSH_DIR/earendil.omp.json"
 
+# Collapse $HOME to ~. Deliberately NOT `${1/#$HOME/~}`: bash 5 tilde-expands the
+# replacement straight back into $HOME so nothing collapses, while escaping it as `\~`
+# leaves a literal backslash on bash 3.2. Prefix matching behaves the same everywhere.
+tilde() { # tilde <path>
+  case "$1" in
+    "$HOME")   printf '~';;
+    "$HOME"/*) printf '~%s' "${1#"$HOME"}";;
+    *)         printf '%s' "$1";;
+  esac
+}
+
 warn() { printf '  ! %s\n' "$*" >&2; }
 die()  { printf '✗ %s\n' "$*" >&2; exit 1; }
 
 # ── Ghostty ──────────────────────────────────────────────────────────
+# 整行替换 `key = value`，没有就追加。写临时文件再 mv，中途失败不会留下半个配置。
+set_key() { # set_key <file> <key> <value>
+  local f="$1" k="$2" v="$3" tmp="$1.theme.$$"
+  awk -v k="$k" -v v="$v" '
+    BEGIN { hit = 0 }
+    !hit && $0 ~ "^[ \t]*" k "[ \t]*=" { print k " = " v; hit = 1; next }
+    { print }
+    END { if (!hit) print k " = " v }
+  ' "$f" > "$tmp" || { rm -f "$tmp"; return 1; }
+  mv "$tmp" "$f"
+}
+
 ghostty_write() {
   local theme_path="$1" window_theme="$2"
   [ -f "$GHOSTTY_CFG" ] || { warn "没有 ${GHOSTTY_CFG}，跳过 Ghostty"; return 1; }
-  python3 - "$GHOSTTY_CFG" "$theme_path" "$window_theme" <<'PY'
-import sys, re, shutil
-cfg, theme_path, window_theme = sys.argv[1:4]
-shutil.copy2(cfg, cfg + '.bak-theme')
-s = open(cfg).read()
-def setkey(text, key, value):
-    pat = re.compile(rf'^{re.escape(key)}\s*=.*$', re.M)
-    line = f'{key} = {value}'
-    return pat.sub(line, text, count=1) if pat.search(text) else text.rstrip('\n') + f'\n{line}\n'
-s = setkey(s, 'theme', theme_path)
-s = setkey(s, 'window-theme', window_theme)
-open(cfg, 'w').write(s)
-PY
+  cp "$GHOSTTY_CFG" "$GHOSTTY_CFG.bak-theme"
+  set_key "$GHOSTTY_CFG" theme "$theme_path" &&
+    set_key "$GHOSTTY_CFG" window-theme "$window_theme"
 }
 
 ghostty_reload() {
@@ -64,16 +80,31 @@ ghostty_reload() {
 }
 
 # ── pi ───────────────────────────────────────────────────────────────
+# settings.json 里只改一个顶层字符串键。改不动就报错退出，绝不猜 —— 写坏 settings.json
+# 比报个错严重得多。
 pi_write() {
+  local tmp="$PI_SETTINGS.theme.$$"
   [ -f "$PI_SETTINGS" ] || { warn "没有 ${PI_SETTINGS}，跳过 pi"; return 1; }
-  python3 - "$PI_SETTINGS" "$1" <<'PY'
-import sys, json, shutil
-path, theme = sys.argv[1:3]
-shutil.copy2(path, path + '.bak-theme')
-d = json.load(open(path))
-d['theme'] = theme
-open(path, 'w').write(json.dumps(d, indent=2, ensure_ascii=False) + '\n')
-PY
+  cp "$PI_SETTINGS" "$PI_SETTINGS.bak-theme"
+  awk -v v="$1" '
+    BEGIN { hit = 0 }
+    !hit && /"theme"[ \t]*:/ {
+      sub(/"theme"[ \t]*:[ \t]*"[^"]*"/, "\"theme\": \"" v "\"")
+      hit = 1
+    }
+    { buf[NR] = $0 }
+    END {
+      for (i = 1; i <= NR; i++) {
+        print buf[i]
+        if (!hit && i == 1 && buf[i] ~ /^[ \t]*\{[ \t]*$/) {
+          print "  \"theme\": \"" v "\","
+          hit = 1
+        }
+      }
+      if (!hit) exit 1
+    }
+  ' "$PI_SETTINGS" > "$tmp" || { rm -f "$tmp"; warn "改不动 ${PI_SETTINGS}，跳过 pi"; return 1; }
+  mv "$tmp" "$PI_SETTINGS"
 }
 
 # ── oh-my-posh ───────────────────────────────────────────────────────
@@ -91,11 +122,24 @@ omp_write() {
 }
 
 # ── 状态 ─────────────────────────────────────────────────────────────
+# 取第一条 `key = value` 的 value，首尾空白去掉。原来是 `cut -d= -f2- | xargs`，但
+# xargs 会把内容当命令行解析 —— 路径里出现 ' " 或 \ 就会报 unmatched quote 或被悄悄
+# 改写。awk 只做字符串处理，不解释任何东西。
+get_key() { # get_key <file> <key>
+  awk -v k="$2" '
+    $0 ~ "^[ \t]*" k "[ \t]*=" {
+      sub("^[ \t]*" k "[ \t]*=[ \t]*", "")
+      sub(/[ \t]+$/, "")
+      print; exit
+    }
+  ' "$1" 2>/dev/null
+}
+
 show_status() {
   local g w p o
-  g=$(grep -E '^theme\s*=' "$GHOSTTY_CFG" 2>/dev/null | head -1 | cut -d= -f2- | xargs)
-  w=$(grep -E '^window-theme\s*=' "$GHOSTTY_CFG" 2>/dev/null | head -1 | cut -d= -f2- | xargs)
-  p=$(python3 -c "import json;print(json.load(open('$PI_SETTINGS'))['theme'])" 2>/dev/null)
+  g=$(get_key "$GHOSTTY_CFG" theme)
+  w=$(get_key "$GHOSTTY_CFG" window-theme)
+  p=$(awk -F'"' '/"theme"[ \t]*:/ { print $4; exit }' "$PI_SETTINGS" 2>/dev/null)
   if [ -f "$POSH_ACTIVE" ] && [ -f "$THEME_REPO/oh-my-posh/earendil-dark.omp.json" ]; then
     cmp -s "$POSH_ACTIVE" "$THEME_REPO/oh-my-posh/earendil-dark.omp.json" && o=earendil-dark || o=earendil-light
   else
@@ -105,7 +149,7 @@ show_status() {
   printf '  Ghostty     theme = %s\n' "${g:-（未设置）}"
   printf '              window-theme = %s\n' "${w:-（未设置）}"
   printf '  pi          %s\n' "${p:-未知}"
-  printf '  oh-my-posh  %s  (%s)\n' "$o" "${POSH_ACTIVE/#$HOME/~}"
+  printf '  oh-my-posh  %s  (%s)\n' "$o" "$(tilde "$POSH_ACTIVE")"
 }
 
 case "${1:-}" in
@@ -123,15 +167,17 @@ case "${1:-}" in
     fi
     [ -f "$gtheme" ] || die "找不到终端主题文件 ${gtheme}（THEME_REPO 对了吗？）"
 
-    rc=0
-    printf '✓ 已切到 %s\n' "$mode"
+    # 三层都失败时不能还打 ✓，所以先做事、后下结论。
+    rc=1
     if ghostty_write "$gtheme" "$wtheme"; then
-      if ghostty_reload; then printf '  Ghostty     已热重载\n'
-      else printf '  Ghostty     未能热重载，请按 ⌘⇧,\n'; fi
+      rc=0
+      if ghostty_reload; then printf '  Ghostty     %s  已热重载\n' "$mode"
+      else printf '  Ghostty     %s  新开窗口生效\n' "$mode"; fi
     fi
-    pi_write "$pitheme" && printf '  pi          settings.json → %s\n' "$pitheme"
-    omp_write "$omp"    && printf '  oh-my-posh  → %s\n' "$omp"
-    printf '\n⚠ 当前 pi 会话不会自动重载：/settings → %s\n' "$pitheme"
+    pi_write "$pitheme" && { rc=0; printf '  pi          %s\n' "$pitheme"; }
+    omp_write "$omp"    && { rc=0; printf '  oh-my-posh  %s\n' "${omp%.omp.json}"; }
+    [ "$rc" = 0 ] || die "三层都没能切换"
+    printf '\n  当前 pi 会话不会自动重载：/settings → %s\n' "$pitheme"
     ;;
   *)
     sed -n '2,6p' "$0" | sed 's/^# \{0,1\}//'

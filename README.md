@@ -10,7 +10,7 @@ curl -fsSL https://raw.githubusercontent.com/postdare/theme/main/install.sh | ba
 
 It detects which of `pi`, `ghostty`, `oh-my-posh` and `zsh` (oh-my-zsh) you actually have,
 then shows a checkbox list — `↑`/`↓` to move, `Space` to toggle, `Enter` to confirm, `a`/`n` for all or
-none. **Both variants are always installed**; `--mode` only decides which one is active, and
+none. It prints one line per app and nothing else. **Both variants are always installed**; `--mode` only decides which one is active, and
 `theme light` / `theme dark` switches afterwards. The theme files stay in this repository and
 are referenced from it, so keep the checkout around.
 
@@ -29,12 +29,18 @@ Worth knowing before you run it:
   installer copies itself to `/tmp` and re-attaches `/dev/tty` for prompts. The checkbox
   selector reads raw keystrokes from the real terminal and restores it on every exit path.
 - **Nothing is overwritten silently.** Every file it edits is copied to `<file>.bak-postdare`
-  first, config edits replace a key rather than append, and re-running changes nothing.
+  the first time it touches it — that copy always holds the pre-install original, so
+  re-running never clobbers it. Config edits replace a key rather than append, and
+  re-running changes nothing.
 - **Uninstall is recorded, not guessed.** Ghostty does not support inline comments — anything
   after `#` is swallowed into the value — so the installer cannot mark its own lines. It keeps
   a record in `~/.local/state/postdare-theme/installed` instead, and falls back to matching the
   theme path if that file is gone. For zsh it also records the theme name it replaced, so
   `--uninstall` puts *your* theme back rather than leaving a dangling `ZSH_THEME`.
+- **No dependencies beyond `awk`.** Every config edit is an awk pass into a temp file that
+  is then renamed, so an interrupted edit leaves the original intact. Notably *not* python3:
+  on a Mac without Xcode CLT, `/usr/bin/python3` is a stub that pops the install dialog, and
+  a one-line theme installer has no business making you install Xcode first.
 - **Bash 3.2 compatible**, which is what macOS ships. `${var,,}`, `declare -A` and `readarray`
   would break there.
 
