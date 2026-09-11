@@ -1,0 +1,11 @@
+# macOS
+# Finder 会给访问过的目录生成 .DS_Store，切分支/拷目录时会到处冒出来
+.DS_Store
+
+# AppleDouble 资源叉文件：出现在外置盘、网络盘、以及部分同步工具里
+._*
+.AppleDouble
+.LSOverride
+
+# Finder 自定义文件夹图标
+Icon?
