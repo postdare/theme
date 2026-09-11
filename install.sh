@@ -24,9 +24,10 @@ if [ ! -t 0 ] && [ -p /dev/stdin ]; then
   # Re-attach stdin to /dev/null: the original pipe held the script, and any subprocess
   # that reads stdin would otherwise consume it. Interactive prompts already read from
   # /dev/tty, so this keeps both `curl | bash` in a terminal and headless runs working.
-  # Run as a child instead of exec; in headless sessions exec makes bash try to claim a
-  # controlling terminal and print a harmless /dev/tty warning.
-  bash "$_tmp" "$@" < /dev/null
+  # Run as a child via `bash -c source` rather than `bash file`. In headless sessions the
+  # latter makes bash try to claim a controlling terminal and print a harmless /dev/tty
+  # warning; sourcing the file avoids that startup path.
+  bash -c 'source "$0" "$@"' "$_tmp" "$@" < /dev/null
   exit $?
 fi
 
