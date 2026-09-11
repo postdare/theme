@@ -5,7 +5,7 @@ A collection of personal themes for terminal and editor.
 ## Contents
 
 - [`zsh/`](./zsh) — **Fire & Earth** (火土暖色), a warm Oh My Zsh theme. Designed for a dark background.
-- [`oh-my-posh/`](./oh-my-posh) — **Earendil** (纸墨暖色), a paper & ink oh-my-posh prompt.
+- [`oh-my-posh/`](./oh-my-posh) — **Earendil** (纸墨暖色), a *prompt* that recolors your existing oh-my-posh theme. No config file is shipped.
 - [`pi/`](./pi) — **Earendil** (纸墨暖色), light/dark themes for [pi](https://github.com/earendil-works/pi).
 - [`ghostty/`](./ghostty) — **Earendil**, the matching Ghostty terminal palette.
 - **Postdare for Zed** — moved to its own repository: [`postdare/zed-postdare`](https://github.com/postdare/zed-postdare).
