@@ -36,6 +36,10 @@ GHOSTTY_CFG="${GHOSTTY_CONFIG:-$HOME/.config/ghostty/config}"
 PI_SETTINGS="${PI_SETTINGS:-$HOME/.pi/agent/settings.json}"
 POSH_DIR="${POSH_DIR:-$HOME/.poshthemes}"
 POSH_ACTIVE="$POSH_DIR/earendil.omp.json"
+ZSHRC="${ZDOTDIR:-$HOME}/.zshrc"
+
+if [ -t 1 ]; then C_D=$'\033[2m'; C_R=$'\033[0m'; C_W=$'\033[33m'
+else C_D=''; C_R=''; C_W=''; fi
 
 # Collapse $HOME to ~. Deliberately NOT `${1/#$HOME/~}`: bash 5 tilde-expands the
 # replacement straight back into $HOME so nothing collapses, while escaping it as `\~`
@@ -135,21 +139,53 @@ get_key() { # get_key <file> <key>
   ' "$1" 2>/dev/null
 }
 
+# 每层一行，和 install.sh 的输出对齐。
+row() { printf '  %-12s %s%s%s\n' "$1" "$C_D" "$2" "$C_R"; }
+
+# 归一成变体名。Ghostty 的浅色文件就叫 earendil（没有 -light 后缀），所以要单独认。
+variant_of() { # variant_of <路径或主题名>
+  case "$1" in
+    "")               printf '';;
+    *earendil-dark*)  printf 'earendil-dark';;
+    *earendil-light*) printf 'earendil-light';;
+    *earendil*)       printf 'earendil-light';;
+    *)                printf '%s' "$1";;   # 用户自己的主题，原样显示
+  esac
+}
+
 show_status() {
-  local g w p o
-  g=$(get_key "$GHOSTTY_CFG" theme)
-  w=$(get_key "$GHOSTTY_CFG" window-theme)
-  p=$(awk -F'"' '/"theme"[ \t]*:/ { print $4; exit }' "$PI_SETTINGS" 2>/dev/null)
+  local g p o z modes="" v
+
+  # ghostty：配置文件都没有 = 没装；有文件但没 theme 键 = 装了没配
+  if [ ! -f "$GHOSTTY_CFG" ]; then g="未安装"
+  else g="$(variant_of "$(get_key "$GHOSTTY_CFG" theme)")"; [ -z "$g" ] && g="未配置"; fi
+
+  if [ ! -f "$PI_SETTINGS" ]; then p="未安装"
+  else p="$(variant_of "$(awk -F'"' '/"theme"[ \t]*:/ { print $4; exit }' "$PI_SETTINGS" 2>/dev/null)")"
+       [ -z "$p" ] && p="未配置"; fi
+
   if [ -f "$POSH_ACTIVE" ] && [ -f "$THEME_REPO/oh-my-posh/earendil-dark.omp.json" ]; then
     cmp -s "$POSH_ACTIVE" "$THEME_REPO/oh-my-posh/earendil-dark.omp.json" && o=earendil-dark || o=earendil-light
-  else
-    o='（未配置）'
-  fi
-  printf '  仓库        %s\n' "$THEME_REPO"
-  printf '  Ghostty     theme = %s\n' "${g:-（未设置）}"
-  printf '              window-theme = %s\n' "${w:-（未设置）}"
-  printf '  pi          %s\n' "${p:-未知}"
-  printf '  oh-my-posh  %s  (%s)\n' "$o" "$(tilde "$POSH_ACTIVE")"
+  elif command -v oh-my-posh >/dev/null 2>&1; then o="未配置"
+  else o="未安装"; fi
+
+  # zsh 主题是调色板索引的，浅深自适应，所以不参与一致性检查
+  if [ ! -d "$HOME/.oh-my-zsh" ]; then z="未安装"
+  else z="$(get_key "$ZSHRC" ZSH_THEME | tr -d '"'"'"'"')"; [ -z "$z" ] && z="未配置"; fi
+
+  row ghostty      "$g"
+  row pi           "$p"
+  row oh-my-posh   "$o"
+  row zsh          "$z"
+
+  # 三层浅深不一致正是这个脚本存在的理由：漏掉的那层换底后会直接隐形。
+  for v in "$g" "$p" "$o"; do
+    case "$v" in earendil-dark) modes="${modes}d";; earendil-light) modes="${modes}l";; esac
+  done
+  case "$modes" in
+    *d*l*|*l*d*) printf '\n  %s! 浅深不一致 —— theme light 或 theme dark 可以一次同步%s\n' "$C_W" "$C_R";;
+  esac
+  printf '\n  %s%s%s\n' "$C_D" "$(tilde "$THEME_REPO")" "$C_R"
 }
 
 case "${1:-}" in
@@ -167,17 +203,17 @@ case "${1:-}" in
     fi
     [ -f "$gtheme" ] || die "找不到终端主题文件 ${gtheme}（THEME_REPO 对了吗？）"
 
-    # 三层都失败时不能还打 ✓，所以先做事、后下结论。
+    # 三层都失败时不能还打 ✓，所以先做事、后下结论。格式与 theme status 保持一致。
     rc=1
     if ghostty_write "$gtheme" "$wtheme"; then
       rc=0
-      if ghostty_reload; then printf '  Ghostty     %s  已热重载\n' "$mode"
-      else printf '  Ghostty     %s  新开窗口生效\n' "$mode"; fi
+      if ghostty_reload; then row ghostty "$(variant_of "$gtheme")  已热重载"
+      else row ghostty "$(variant_of "$gtheme")  新开窗口生效"; fi
     fi
-    pi_write "$pitheme" && { rc=0; printf '  pi          %s\n' "$pitheme"; }
-    omp_write "$omp"    && { rc=0; printf '  oh-my-posh  %s\n' "${omp%.omp.json}"; }
+    pi_write "$pitheme" && { rc=0; row pi "$pitheme"; }
+    omp_write "$omp"    && { rc=0; row oh-my-posh "${omp%.omp.json}"; }
     [ "$rc" = 0 ] || die "三层都没能切换"
-    printf '\n  当前 pi 会话不会自动重载：/settings → %s\n' "$pitheme"
+    printf '\n  %spi 当前会话不会自动重载：/settings → %s%s\n' "$C_D" "$pitheme" "$C_R"
     ;;
   *)
     sed -n '2,6p' "$0" | sed 's/^# \{0,1\}//'
