@@ -39,7 +39,8 @@ Worth knowing before you run it:
 
 ## Contents
 
-- [`zsh/`](./zsh) — **Fire & Earth** (火土暖色), a warm Oh My Zsh theme. Designed for a dark background.
+- [`zsh/`](./zsh) — **Earendil** (纸墨暖色), a paper & ink Oh My Zsh theme. Palette-indexed, so it adapts to light and dark.
+- **Fire & Earth** (火土暖色) — the earlier warm Oh My Zsh theme, kept for reference: [`zsh/fire-earth.zsh-theme`](./zsh/fire-earth.zsh-theme). Needs a dark background.
 - [`oh-my-posh/`](./oh-my-posh) — **Earendil** (纸墨暖色), a paper & ink oh-my-posh prompt (light/dark).
 - [`pi/`](./pi) — **Earendil** (纸墨暖色), light/dark themes for [pi](https://github.com/earendil-works/pi).
 - [`ghostty/`](./ghostty) — **Earendil**, the matching Ghostty terminal palettes (light/dark).
