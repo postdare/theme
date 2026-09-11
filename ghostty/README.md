@@ -74,3 +74,26 @@ stay distinguishable without importing a color the design does not use.
 
 All 16 slots were checked against their own background: normal slots at 4.5:1 or better,
 the two dim slots (0 and 8) at 2:1 and 3:1 respectively.
+
+## Guard against hardcoded colors
+
+No palette can fix a tool that hardcodes its own foregrounds. yazi, for instance, paints
+the icon of every non-directory file in literal `#ffffff`, which on the cream background is
+1.23:1 — invisible — and truecolor bypasses the palette entirely.
+
+Ghostty can correct that at the renderer:
+
+```ini
+minimum-contrast = 3
+```
+
+From Ghostty's own documentation: *"If you want to avoid invisible text (same color as
+background), a value of 1.1 is a good value. If you want to avoid text that is difficult to
+read, a value of 3 or higher is a good value."* It raises any foreground that sits too
+close to the background, whatever the source — hardcoded truecolor, a 256-color index, or
+the palette itself. It works for both palettes, and it removes the need to fight every
+individual tool's config.
+
+Do not set it to 4.5: it will drag de-emphasized colors (`dim`, `muted`, comment-style
+tokens) up to full body contrast and flatten the hierarchy these palettes are built around.
+3 is the sweet spot.
