@@ -8,8 +8,8 @@ A collection of personal themes for terminal and editor.
 curl -fsSL https://raw.githubusercontent.com/postdare/theme/main/install.sh | bash
 ```
 
-It detects which of `pi`, `ghostty` and `oh-my-posh` you actually have, then shows a
-checkbox list — `↑`/`↓` to move, `Space` to toggle, `Enter` to confirm, `a`/`n` for all or
+It detects which of `pi`, `ghostty`, `oh-my-posh` and `zsh` (oh-my-zsh) you actually have,
+then shows a checkbox list — `↑`/`↓` to move, `Space` to toggle, `Enter` to confirm, `a`/`n` for all or
 none. **Both variants are always installed**; `--mode` only decides which one is active, and
 `theme light` / `theme dark` switches afterwards. The theme files stay in this repository and
 are referenced from it, so keep the checkout around.
@@ -33,14 +33,14 @@ Worth knowing before you run it:
 - **Uninstall is recorded, not guessed.** Ghostty does not support inline comments — anything
   after `#` is swallowed into the value — so the installer cannot mark its own lines. It keeps
   a record in `~/.local/state/postdare-theme/installed` instead, and falls back to matching the
-  theme path if that file is gone.
+  theme path if that file is gone. For zsh it also records the theme name it replaced, so
+  `--uninstall` puts *your* theme back rather than leaving a dangling `ZSH_THEME`.
 - **Bash 3.2 compatible**, which is what macOS ships. `${var,,}`, `declare -A` and `readarray`
   would break there.
 
 ## Contents
 
 - [`zsh/`](./zsh) — **Earendil** (纸墨暖色), a paper & ink Oh My Zsh theme. Palette-indexed, so it adapts to light and dark.
-- **Fire & Earth** (火土暖色) — the earlier warm Oh My Zsh theme, kept for reference: [`zsh/fire-earth.zsh-theme`](./zsh/fire-earth.zsh-theme). Needs a dark background.
 - [`oh-my-posh/`](./oh-my-posh) — **Earendil** (纸墨暖色), a paper & ink oh-my-posh prompt (light/dark).
 - [`pi/`](./pi) — **Earendil** (纸墨暖色), light/dark themes for [pi](https://github.com/earendil-works/pi).
 - [`ghostty/`](./ghostty) — **Earendil**, the matching Ghostty terminal palettes (light/dark).

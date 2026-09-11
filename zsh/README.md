@@ -56,12 +56,12 @@ Everything from 8 up silently loses its colour on the Linux build. The theme the
 `\e[38;5;Nm` out explicitly, which is the standard 256-colour form and behaves identically
 everywhere.
 
-**Absolute colours do not survive a background change.** The previous theme here,
-[`fire-earth`](./fire-earth.zsh-theme), used values such as `%F{208}` and `%F{179}`. Those
-bypass the palette, which is fine on a dark terminal and unreadable on cream — measured
-against `#e8e5de`, the arrow `#ff8700` is 1.91:1 and the path `#d7af5f` is 1.64:1, while the
-same two values reach 7.41:1 and 8.66:1 on charcoal. Indexed slots are resolved by the
-terminal, so this theme adapts on its own.
+**Absolute colours do not survive a background change.** This theme replaced one that used
+values such as `%F{208}` and `%F{179}` — a fiery orange arrow and a sand-coloured path. Those
+bypass the palette, which is fine on a dark terminal and unreadable on cream: measured
+against `#e8e5de`, `#ff8700` is 1.91:1 and `#d7af5f` is 1.64:1, while the same two values
+reach 7.41:1 and 8.66:1 on charcoal. Indexed slots are resolved by the terminal, so this theme
+adapts on its own. The old file is still in git history if you want it back.
 
 ## Notes
 

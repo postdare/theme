@@ -92,7 +92,7 @@ Usage:
   curl -fsSL $RAW/install.sh | bash -s -- --only pi --mode dark
 
 Options:
-  --only <apps>     skip the menu: pi,ghostty,oh-my-posh
+  --only <apps>     skip the menu: pi,ghostty,oh-my-posh,zsh
   --apps <apps>     same as --only
   --mode <m>        which variant is active: light | dark   (default: light)
                     both variants are always installed — `theme dark` switches later
@@ -126,7 +126,7 @@ done
 
 case "$MODE" in ""|light|dark) ;; *) die "--mode must be light or dark";; esac
 for a in $(printf '%s' "$APPS" | tr ',' ' '); do
-  case "$a" in pi|ghostty|oh-my-posh) ;; *) die "unknown app: $a (want pi, ghostty or oh-my-posh)";; esac
+  case "$a" in pi|ghostty|oh-my-posh|zsh) ;; *) die "unknown app: $a (want pi, ghostty, oh-my-posh or zsh)";; esac
 done
 
 # ── locate or fetch the theme files ───────────────────────────────────
@@ -159,11 +159,18 @@ if [ -n "$SRC" ]; then
 else
   if [ -d "$DIR/.git" ]; then
     SRC="$DIR"
-    if [ "$DO_UPDATE" = 1 ]; then
-      git -C "$DIR" pull --ff-only --quiet && ok "updated $(tilde "$DIR")" || warn "could not update $(tilde "$DIR")"
-      exit 0
+    # Reusing silently would keep a stale clone whose theme files may predate what is
+    # being installed. Pulling is cheap and non-fatal, so a re-run always gets the
+    # current themes without anyone thinking about it.
+    if [ "$DRY" != 1 ]; then
+      if git -C "$DIR" pull --ff-only --quiet 2>/dev/null; then
+        ok "updated $(tilde "$DIR")"
+        [ "$DO_UPDATE" = 1 ] && exit 0
+      else
+        dim "reusing $(tilde "$DIR") (could not reach the remote)"
+      fi
     fi
-    dim "reusing $(tilde "$DIR") (pass --update to pull)"
+    [ "$DO_UPDATE" = 1 ] && exit 0
   else
     if [ "$DRY" = 1 ]; then
       dim "would fetch $REPO@$REF into $(tilde "$DIR")"
@@ -186,6 +193,7 @@ detect() { # detect <app> -> 0 present
     pi)         command -v pi >/dev/null 2>&1 || [ -d "$HOME/.pi" ];;
     ghostty)    [ -d "$GHOSTTY_APP" ] || command -v ghostty >/dev/null 2>&1;;
     oh-my-posh) command -v oh-my-posh >/dev/null 2>&1;;
+    zsh)        [ -d "$HOME/.oh-my-zsh" ];;
   esac
 }
 
@@ -194,7 +202,14 @@ detect_note() {
     pi)         tilde "$HOME/.pi";;
     ghostty)    [ -d "$GHOSTTY_APP" ] && printf '%s' "$GHOSTTY_APP" || command -v ghostty;;
     oh-my-posh) command -v oh-my-posh 2>/dev/null;;
+    zsh)        zsh_custom | sed "s|$HOME|~|";;
   esac
+}
+
+# oh-my-zsh's own default is $ZSH/custom; an explicit ZSH_CUSTOM in the environment wins.
+zsh_custom() {
+  if [ -n "${ZSH_CUSTOM:-}" ]; then printf '%s' "$ZSH_CUSTOM"
+  else printf '%s' "$HOME/.oh-my-zsh/custom"; fi
 }
 
 # ── checkbox selector ─────────────────────────────────────────────────
@@ -292,7 +307,7 @@ select_apps() { # select_apps <space separated candidates> -> echoed comma list
 if [ -z "$APPS" ] && [ "$UNINSTALL" != 1 ]; then
   step "Detected"
   avail=""
-  for a in pi ghostty oh-my-posh; do
+  for a in pi ghostty oh-my-posh zsh; do
     if detect "$a"; then ok "$a"; avail="${avail:+$avail }$a"; else dim "$a — not installed"; fi
   done
   [ -z "$avail" ] && die "none of pi, ghostty, oh-my-posh found; pass --only to force"
@@ -444,6 +459,54 @@ PY
 }
 
 # ─────────────────────────────────────────────────────────────────────
+# zsh (oh-my-zsh)
+# ─────────────────────────────────────────────────────────────────────
+ZSH_THEME_PREV=""
+install_zsh() {
+  step "zsh (oh-my-zsh)"
+  local src="$SRC/zsh/earendil.zsh-theme"
+  local dir; dir="$(zsh_custom)/themes"
+  local link="$dir/earendil.zsh-theme"
+  [ -f "$src" ] || { err "missing $src"; return 1; }
+
+  # Remembered so --uninstall can put the user's own theme back.
+  if [ -f "$ZSHRC" ]; then
+    ZSH_THEME_PREV="$(grep -m1 -E '^[[:space:]]*ZSH_THEME=' "$ZSHRC" 2>/dev/null | cut -d= -f2- | tr -d '\"' | tr -d "'" | xargs)"
+  fi
+
+  if [ "$DRY" = 1 ]; then
+    dim "would link $(tilde "$link") -> $(tilde "$src")"
+    dim "would set ZSH_THEME=\"earendil\" in $(tilde "$ZSHRC")"
+    [ -n "$ZSH_THEME_PREV" ] && dim "  (currently \"$ZSH_THEME_PREV\")"
+    return 0
+  fi
+
+  mkdir -p "$dir"
+  rm -f "$link"
+  ln -s "$src" "$link"
+  ok "linked $(tilde "$link")"
+
+  [ -f "$ZSHRC" ] || { dim "no $(tilde "$ZSHRC") — set ZSH_THEME=\"earendil\" yourself"; return 0; }
+  backup "$ZSHRC"
+  python3 - "$ZSHRC" <<'PY'
+import re, sys
+path = sys.argv[1]
+text = open(path).read()
+pat = re.compile(r'^[ \t]*ZSH_THEME=.*$', re.M)
+if pat.search(text):
+    text = pat.sub('ZSH_THEME="earendil"', text, count=1)
+else:
+    text = text.rstrip('\n') + '\n\n# Postdare Themes\nZSH_THEME="earendil"\n'
+open(path, 'w').write(text)
+PY
+  ok "ZSH_THEME=\"earendil\" in $(tilde "$ZSHRC")"
+  if [ -n "$ZSH_THEME_PREV" ] && [ "$ZSH_THEME_PREV" != earendil ]; then
+    dim "was \"$ZSH_THEME_PREV\" — --uninstall puts it back"
+  fi
+  dim "open a new shell to see it"
+}
+
+# ─────────────────────────────────────────────────────────────────────
 # uninstall
 # ─────────────────────────────────────────────────────────────────────
 uninstall() {
@@ -466,6 +529,7 @@ uninstall() {
         POSH_ACTIVE)    rposh="$v";;
         ZSHRC)          rzshrc="$v";;
         ZSHRC_TOUCHED)  rzshrc_touched="$v";;
+        ZSH_THEME_PREV) rzsh_theme_prev="$v";;
         BIN_LINK)       rbin="$v";;
       esac
     done < "$MANIFEST"
@@ -547,6 +611,29 @@ PY
     else rm -f "$rbin"; ok "removed $(tilde "$rbin")"; fi
   fi
 
+  # zsh (oh-my-zsh) — drop the theme link and put the previous theme name back
+  local zlink; zlink="$(zsh_custom)/themes/earendil.zsh-theme"
+  if [ -L "$zlink" ] || [ -f "$zlink" ]; then
+    if [ "$DRY" = 1 ]; then dim "would remove $(tilde "$zlink")"
+    else rm -f "$zlink"; ok "removed $(tilde "$zlink")"; fi
+  fi
+  if [ -f "$ZSHRC" ] && grep -q '^ZSH_THEME="earendil"' "$ZSHRC"; then
+    local back="${rzsh_theme_prev:-robbyrussell}"
+    [ "$back" = earendil ] && back=robbyrussell
+    if [ "$DRY" = 1 ]; then dim "would restore ZSH_THEME=\"$back\""
+    else
+      backup "$ZSHRC"
+      python3 - "$ZSHRC" "$back" <<'PY'
+import re, sys
+path, back = sys.argv[1:3]
+text = open(path).read()
+text = re.sub(r'^[ \t]*ZSH_THEME=.*$', f'ZSH_THEME="{back}"', text, count=1, flags=re.M)
+open(path, 'w').write(text)
+PY
+      ok "restored ZSH_THEME=\"$back\""
+    fi
+  fi
+
   if [ "$DRY" != 1 ]; then
     rm -f "$MANIFEST"
     dim "cleared the install record"
@@ -563,6 +650,7 @@ if [ "$UNINSTALL" = 1 ]; then uninstall; say ""; exit 0; fi
 has_app pi         && install_pi
 has_app ghostty    && install_ghostty
 has_app oh-my-posh && install_omp
+has_app zsh        && install_zsh
 
 # The switcher is the whole point of this repo: three layers, one command.
 if [ "$DRY" != 1 ] && [ -f "$SRC/bin/theme" ]; then
@@ -581,6 +669,13 @@ say "  active    $MODE"
 # Record precisely what we changed so --uninstall does not have to guess.
 if [ "$DRY" != 1 ]; then
   mkdir -p "$STATE_DIR"
+  # A re-run must not overwrite the recorded original theme with our own name, or
+  # --uninstall can no longer put the user's theme back.
+  _prev=$ZSH_THEME_PREV
+  if [ -f "$MANIFEST" ]; then
+    _old="$(sed -n 's/^ZSH_THEME_PREV=//p' "$MANIFEST" | head -1)"
+    if [ -n "$_old" ] && [ "$_old" != earendil ]; then _prev="$_old"; fi
+  fi
   {
     printf 'DIR=%s\n' "$SRC"
     printf 'APPS=%s\n' "$APPS"
@@ -590,6 +685,7 @@ if [ "$DRY" != 1 ]; then
     printf 'POSH_ACTIVE=%s\n' "$HOME/.poshthemes/earendil.omp.json"
     printf 'ZSHRC=%s\n' "$ZSHRC"
     has_app oh-my-posh && [ "$SET_ZSH" = 1 ] && printf 'ZSHRC_TOUCHED=1\n'
+    has_app zsh && printf 'ZSH_THEME_PREV=%s\n' "$_prev"
     printf 'BIN_LINK=%s\n' "$HOME/.local/bin/theme"
   } > "$MANIFEST"
   dim "recorded what changed: $(tilde "$MANIFEST")"
