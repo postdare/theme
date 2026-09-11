@@ -2,6 +2,38 @@
 
 A collection of personal themes for terminal and editor.
 
+## Install
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/postdare/theme/main/install.sh | bash
+```
+
+It detects which of `pi`, `ghostty` and `oh-my-posh` you actually have, asks which to theme
+and whether your background is light or dark, then links the themes in. The theme files stay
+in this repository and are referenced from it, so keep the checkout around.
+
+```bash
+# non-interactive, only one app
+curl -fsSL .../install.sh | bash -s -- --only pi --mode dark
+
+./install.sh --dry-run        # show every change, write nothing
+./install.sh --uninstall      # remove what it installed
+./install.sh --help
+```
+
+Worth knowing before you run it:
+
+- **`curl | bash` cannot prompt.** Under a pipe, stdin *is* the script, so any `read` hits
+  EOF. The installer reads from `/dev/tty` instead, and takes flags for non-interactive use.
+- **Nothing is overwritten silently.** Every file it edits is copied to `<file>.bak-postdare`
+  first, config edits replace a key rather than append, and re-running changes nothing.
+- **Uninstall is recorded, not guessed.** Ghostty does not support inline comments — anything
+  after `#` is swallowed into the value — so the installer cannot mark its own lines. It keeps
+  a record in `~/.local/state/postdare-theme/installed` instead, and falls back to matching the
+  theme path if that file is gone.
+- **Bash 3.2 compatible**, which is what macOS ships. `${var,,}`, `declare -A` and `readarray`
+  would break there.
+
 ## Contents
 
 - [`zsh/`](./zsh) — **Fire & Earth** (火土暖色), a warm Oh My Zsh theme. Designed for a dark background.
