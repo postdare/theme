@@ -57,10 +57,11 @@ Everything from 8 up silently loses its colour on the Linux build. The theme the
 everywhere.
 
 **Absolute colours do not survive a background change.** The previous theme here,
-[`fire-earth`](./fire-earth.zsh-theme), used values such as `%F{208}` and `%F{196}`. Those
-bypass the palette, which is fine on a dark terminal and glaring on cream — `#ff8700` on
-`#e8e5de` is 1.6:1, effectively invisible. Indexed slots are resolved by the terminal, so
-this theme adapts on its own.
+[`fire-earth`](./fire-earth.zsh-theme), used values such as `%F{208}` and `%F{179}`. Those
+bypass the palette, which is fine on a dark terminal and unreadable on cream — measured
+against `#e8e5de`, the arrow `#ff8700` is 1.91:1 and the path `#d7af5f` is 1.64:1, while the
+same two values reach 7.41:1 and 8.66:1 on charcoal. Indexed slots are resolved by the
+terminal, so this theme adapts on its own.
 
 ## Notes
 
