@@ -14,6 +14,24 @@
 # `declare -A` and `readarray` would break silently there.
 set -uo pipefail
 
+# If this script is piped (curl | bash), stdin is the script itself. Copy it to a temp
+# file and re-exec from there so subprocesses cannot accidentally consume the script,
+# and attach stdin to the controlling terminal so interactive prompts still work.
+if [ ! -t 0 ] && [ -p /dev/stdin ]; then
+  _tmp=$(mktemp /tmp/postdare-install.XXXXXX)
+  cat > "$_tmp"
+  chmod +x "$_tmp"
+  # Re-attach stdin to /dev/null: the original pipe held the script, and any subprocess
+  # that reads stdin would otherwise consume it. Interactive prompts already read from
+  # /dev/tty, so this keeps both `curl | bash` in a terminal and headless runs working.
+  exec bash "$_tmp" "$@" < /dev/null
+fi
+
+# If we are the temp copy from above, clean ourselves up on exit.
+if [[ "$0" == /tmp/postdare-install.* ]]; then
+  trap 'rm -f "$0"' EXIT
+fi
+
 REPO="postdare/theme"
 REF="${THEME_REF:-main}"
 RAW="https://raw.githubusercontent.com/$REPO/$REF"
@@ -163,7 +181,9 @@ else
     # being installed. Pulling is cheap and non-fatal, so a re-run always gets the
     # current themes without anyone thinking about it.
     if [ "$DRY" != 1 ]; then
-      if git -C "$DIR" pull --ff-only --quiet 2>/dev/null; then
+      # < /dev/null prevents git from reading the install script off stdin when this
+      # script is run as `curl ... | bash`.
+      if git -C "$DIR" pull --ff-only --quiet < /dev/null 2>/dev/null; then
         ok "updated $(tilde "$DIR")"
         [ "$DO_UPDATE" = 1 ] && exit 0
       else

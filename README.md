@@ -15,8 +15,8 @@ none. **Both variants are always installed**; `--mode` only decides which one is
 are referenced from it, so keep the checkout around.
 
 ```bash
-# non-interactive, only one app
-curl -fsSL .../install.sh | bash -s -- --only pi --mode dark
+# non-interactive: install only specific apps (useful in CI or dotfiles)
+curl -fsSL https://raw.githubusercontent.com/postdare/theme/main/install.sh | bash -s -- --only pi --mode dark
 
 ./install.sh --dry-run        # show every change, write nothing
 ./install.sh --uninstall      # remove what it installed
@@ -25,9 +25,9 @@ curl -fsSL .../install.sh | bash -s -- --only pi --mode dark
 
 Worth knowing before you run it:
 
-- **`curl | bash` cannot prompt the usual way.** Under a pipe, stdin *is* the script, so any
-  plain `read` hits EOF. The checkbox selector reads raw keystrokes from `/dev/tty` instead,
-  restores the terminal on every exit path, and falls back to `--only` when there is no tty.
+- **Interactive even when piped.** Under `curl | bash`, stdin is the script itself, so the
+  installer copies itself to `/tmp` and re-attaches `/dev/tty` for prompts. The checkbox
+  selector reads raw keystrokes from the real terminal and restores it on every exit path.
 - **Nothing is overwritten silently.** Every file it edits is copied to `<file>.bak-postdare`
   first, config edits replace a key rather than append, and re-running changes nothing.
 - **Uninstall is recorded, not guessed.** Ghostty does not support inline comments — anything
