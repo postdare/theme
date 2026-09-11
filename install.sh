@@ -59,7 +59,9 @@ dim()  { printf '  %s%s%s\n' "$C_D" "$*" "$C_R"; }
 # `curl | bash` stdin is the script itself, so a plain read would return EOF and the
 # menu could never appear.
 TTY=/dev/tty
-have_tty() { [ -r "$TTY" ] && [ -w "$TTY" ]; }
+# In headless ssh sessions /dev/tty exists and is even -r/-w, but it is not a real
+# terminal. Redirect fd 0 from it and ask bash whether that fd is a tty.
+have_tty() { [ -t 0 ] <"$TTY" 2>/dev/null; }
 
 backup() { # backup <file>
   [ -f "$1" ] || return 0
