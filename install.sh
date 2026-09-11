@@ -287,7 +287,7 @@ select_apps() { # select_apps <space separated candidates> -> echoed comma list
       a|A)         for i in $(seq 0 $((n - 1))); do sel[$i]=1; done;;
       n|N)         for i in $(seq 0 $((n - 1))); do sel[$i]=0; done;;
       q|Q|$'\003') [ "$testmode" = 0 ] && { _restore_tty; trap - EXIT INT TERM; }
-                   say ""; die "cancelled";;
+                   printf '\n' >&2; die "cancelled";;
       ''|$'\r'|$'\n') break;;
     esac
   done
@@ -297,9 +297,11 @@ select_apps() { # select_apps <space separated candidates> -> echoed comma list
   for i in $(seq 0 $((n - 1))); do
     if [ "${sel[$i]}" = 1 ]; then chosen="${chosen:+$chosen,}${items[$i]}"; count=$((count + 1)); fi
   done
-  say ""
-  if [ "$count" = 0 ]; then dim "nothing selected — nothing to do"; return 1; fi
-  ok "selected: $chosen"
+  # Everything below goes to stderr: stdout is this function's return channel, and a
+  # stray line of diagnostics there would end up inside $APPS.
+  printf '\n' >&2
+  if [ "$count" = 0 ]; then printf '  %snothing selected — nothing to do%s\n' "$C_D" "$C_R" >&2; return 1; fi
+  printf '  %s✓%s selected: %s\n' "$C_OK" "$C_R" "$chosen" >&2
   printf '%s' "$chosen"
 }
 
